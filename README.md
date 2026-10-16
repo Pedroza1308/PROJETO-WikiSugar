@@ -1,16 +1,16 @@
-# 🍎 Projeto WikiSugar
+# WikiSugar
 
 # GRUPO:
-* Helena Victoria
-* Lucas Ribeiro
-* Pablo Felipe
-* Pedro Alves
-* Vinícius Mergulhão
+* Helena Victoria Rocha Fernades.
+* Lucas Ribeiro D'azevedo.
+* Pablo Felipe dos Santos.
+* Pedro Alves dos Santos.
+* Vinícius Mergulhão Teti.
 
 ## 📖 Sobre o Projeto
 O WikiSugar é uma aplicação web/mobile projetada para auxiliar pessoas com diabetes ou restrições alimentares (como doença celíaca e intolerância à lactose) no monitoramento diário das suas rotinas de saúde. O objetivo do sistema é unificar a gestão de dieta, monitorização de treino, hidratação, sono e gamificação, oferecendo suporte avançado através de visão computacional.
 
-## ✨ Funcionalidades Principais
+## Funcionalidades Principais
 
 ### 1. Onboarding e Introdução
 *   A tela de boas-vindas apresenta o WikiSugar como uma ferramenta "user friendly".
@@ -67,7 +67,7 @@ O WikiSugar é uma aplicação web/mobile projetada para auxiliar pessoas com di
 ### 6. Visão Computacional (Leitura de Rótulos)
 *   Utiliza a câmara nativa do dispositivo para aceder a recursos de Visão Computacional, ajudando o utilizador a ler rótulos e a identificar componentes de alimentos.
 
-## 🛠️ Arquitetura e Tecnologias
+## Arquitetura e Tecnologias
 
 A solução baseia-se numa arquitetura Cliente-Servidor dividida em três camadas principais:
 
