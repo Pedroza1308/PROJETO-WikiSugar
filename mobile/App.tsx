@@ -1,20 +1,56 @@
+import {
+  Nunito_400Regular,
+  Nunito_500Medium,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/nunito';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { RootNavigator } from './src/navigation/RootNavigator';
+import { AppProvider, useApp } from './src/store/AppContext';
 
-export default function App() {
+// Keep the native splash visible until fonts + mocked bootstrap data are ready.
+void SplashScreen.preventAutoHideAsync();
+
+function Root() {
+  const { ready } = useApp();
+  const [navReady, setNavReady] = useState(false);
+  const [fontsLoaded, fontError] = useFonts({
+    Nunito_400Regular,
+    Nunito_500Medium,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+  });
+  const fontsDone = fontsLoaded || !!fontError;
+
+  useEffect(() => {
+    if (fontsDone && ready && navReady) void SplashScreen.hideAsync();
+  }, [fontsDone, ready, navReady]);
+
+  const onNavReady = useCallback(() => setNavReady(true), []);
+
+  // Render nothing until fonts resolve so text never flashes in the system font.
+  if (!fontsDone) return null;
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <>
+      <StatusBar style="dark" />
+      <RootNavigator onReady={onNavReady} />
+    </>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppProvider>
+        <Root />
+      </AppProvider>
+    </SafeAreaProvider>
+  );
+}
