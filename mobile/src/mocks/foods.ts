@@ -1,0 +1,31 @@
+import type { Food } from '../types';
+
+/** Nutritional values per `baseGrams` (100 g). Levels: carbs < 15 g = good, 15–25 g = moderate, > 25 g or high sugar = high. */
+export const mockFoods: Food[] = [
+  { id: 'f-001', name: 'Arroz integral cozido', category: 'CEREAIS', portion: '1 colher de servir (100 g)', baseGrams: 100,
+    kcal: 124, carbs: 25.8, protein: 2.6, fat: 1.0, sugar: 0.2, level: 'moderate', status: 'Moderado' },
+  { id: 'f-002', name: 'Arroz branco cozido', category: 'CEREAIS', portion: '1 colher de servir (100 g)', baseGrams: 100,
+    kcal: 128, carbs: 28.1, protein: 2.5, fat: 0.2, sugar: 0.1, level: 'high', status: 'Alto em carboidrato' },
+  { id: 'f-003', name: 'Arroz de couve-flor', category: 'VEGETAIS', portion: '1 xícara (100 g)', baseGrams: 100,
+    kcal: 25, carbs: 5, protein: 1.9, fat: 0.3, sugar: 1.9, level: 'good', status: 'Adequado' },
+  { id: 'f-004', name: 'Banana prata', category: 'FRUTAS', portion: '1 unidade média (100 g)', baseGrams: 100,
+    kcal: 98, carbs: 26.0, protein: 1.3, fat: 0.1, sugar: 14.0, level: 'high', status: 'Alto em carboidrato' },
+  { id: 'f-005', name: 'Feijão carioca cozido', category: 'LEGUMINOSAS', portion: '1 concha (100 g)', baseGrams: 100,
+    kcal: 76, carbs: 13.6, protein: 4.8, fat: 0.5, sugar: 0.3, level: 'good', status: 'Adequado' },
+  { id: 'f-006', name: 'Frango grelhado (peito)', category: 'CARNES', portion: '1 filé pequeno (100 g)', baseGrams: 100,
+    kcal: 159, carbs: 0, protein: 32.0, fat: 2.5, sugar: 0, level: 'good', status: 'Adequado' },
+  { id: 'f-007', name: 'Pão integral', category: 'PÃES', portion: '2 fatias (100 g)', baseGrams: 100,
+    kcal: 253, carbs: 49.9, protein: 9.4, fat: 3.7, sugar: 5.7, level: 'high', status: 'Alto em carboidrato' },
+  { id: 'f-008', name: 'Ovo de galinha cozido', category: 'OVOS', portion: '2 unidades (100 g)', baseGrams: 100,
+    kcal: 146, carbs: 0.6, protein: 13.3, fat: 9.5, sugar: 0.6, level: 'good', status: 'Adequado' },
+  { id: 'f-009', name: 'Iogurte natural integral', category: 'LATICÍNIOS', portion: '1 pote (100 g)', baseGrams: 100,
+    kcal: 51, carbs: 1.9, protein: 4.1, fat: 3.0, sugar: 1.9, level: 'good', status: 'Adequado' },
+  { id: 'f-010', name: 'Batata-doce cozida', category: 'TUBÉRCULOS', portion: '1 pedaço médio (100 g)', baseGrams: 100,
+    kcal: 77, carbs: 18.4, protein: 0.6, fat: 0.1, sugar: 5.7, level: 'moderate', status: 'Moderado' },
+  { id: 'f-011', name: 'Maçã fuji com casca', category: 'FRUTAS', portion: '1 unidade pequena (100 g)', baseGrams: 100,
+    kcal: 56, carbs: 15.2, protein: 0.3, fat: 0.1, sugar: 10.4, level: 'moderate', status: 'Moderado' },
+  { id: 'f-012', name: 'Aveia em flocos', category: 'CEREAIS', portion: '100 g', baseGrams: 100,
+    kcal: 394, carbs: 66.6, protein: 13.9, fat: 8.5, sugar: 1.1, level: 'high', status: 'Alto em carboidrato' },
+  { id: 'f-013', name: 'Tapioca (goma hidratada)', category: 'CEREAIS', portion: '1 unidade média (100 g)', baseGrams: 100,
+    kcal: 240, carbs: 59.0, protein: 0.2, fat: 0.1, sugar: 0.5, level: 'high', status: 'Alto em carboidrato' },
+];
