@@ -5,13 +5,13 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copiar os arquivos de dependência primeiro para aproveitar o cache do Docker
-COPY package*.json ./
+COPY mobile/package*.json ./
 
 # Instalar as dependências usando a flag legada para evitar erros de peer dependencies
 RUN npm install --legacy-peer-deps
 
 # Copiar o restante dos arquivos do projeto mobile
-COPY . .
+COPY mobile/ .
 
 # Expor a porta padrão do Metro Bundler (8081) e do Expo (19000, 19001, 19002)
 EXPOSE 8081 19000 19001 19002
