@@ -7,16 +7,21 @@ import { Icon, IconName } from '../components/Icon';
 import { Txt } from '../components/Txt';
 import { DietScreen } from '../screens/DietScreen';
 import { FoodDetailScreen } from '../screens/FoodDetailScreen';
+import { CreateGroupScreen } from '../screens/groups/CreateGroupScreen';
+import { GroupDetailScreen } from '../screens/groups/GroupDetailScreen';
+import { GroupsScreen } from '../screens/groups/GroupsScreen';
+import { JoinGroupScreen } from '../screens/groups/JoinGroupScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { JournalScreen } from '../screens/JournalScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { colors, shadows } from '../theme/tokens';
-import type { AppTabParamList, HomeStackParamList, SearchStackParamList } from './types';
+import type { AppTabParamList, GroupsStackParamList, HomeStackParamList, SearchStackParamList } from './types';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
+const GroupsStack = createNativeStackNavigator<GroupsStackParamList>();
 
 const stackOptions = { headerShown: false, contentStyle: { backgroundColor: colors.screenBg } } as const;
 
@@ -38,10 +43,22 @@ function SearchStackNavigator() {
   );
 }
 
+function GroupsStackNavigator() {
+  return (
+    <GroupsStack.Navigator screenOptions={stackOptions}>
+      <GroupsStack.Screen name="Groups" component={GroupsScreen} />
+      <GroupsStack.Screen name="CreateGroup" component={CreateGroupScreen} />
+      <GroupsStack.Screen name="JoinGroup" component={JoinGroupScreen} />
+      <GroupsStack.Screen name="GroupDetail" component={GroupDetailScreen} />
+    </GroupsStack.Navigator>
+  );
+}
+
 const TABS: Record<keyof AppTabParamList, { label: string; icon: IconName }> = {
   HomeTab: { label: 'Início', icon: 'home' },
   SearchTab: { label: 'Buscar', icon: 'search' },
-  DietTab: { label: 'Sua Dieta', icon: 'diet' },
+  GroupsTab: { label: 'Grupos', icon: 'users' },
+  DietTab: { label: 'Dieta', icon: 'diet' },
   JournalTab: { label: 'Diário', icon: 'journal' },
 };
 
@@ -91,6 +108,7 @@ export function AppTabs() {
     >
       <Tab.Screen name="HomeTab" component={HomeStackNavigator} />
       <Tab.Screen name="SearchTab" component={SearchStackNavigator} />
+      <Tab.Screen name="GroupsTab" component={GroupsStackNavigator} />
       <Tab.Screen name="DietTab" component={DietScreen} />
       <Tab.Screen name="JournalTab" component={JournalScreen} />
     </Tab.Navigator>

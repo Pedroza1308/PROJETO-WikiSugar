@@ -1,5 +1,9 @@
-node_modules
-npm-debug.log
-.expo
+# O contexto do build e a raiz do repo: sem o "**/", estes padroes so
+# excluiriam a pasta da raiz e o mobile/node_modules do Windows entraria na imagem.
+**/node_modules
+**/.expo
+**/dist
+**/web-build
+**/npm-debug.log*
 .git
-dist
+.env

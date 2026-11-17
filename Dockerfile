@@ -1,20 +1,21 @@
-# Usar uma versão de Node.js LTS compatível com o SDK 52
-FROM node:20-alpine
+# Node 22 LTS (o Expo SDK 58 exige Node ^22.13)
+FROM node:22-alpine
 
-# Definir o diretório de trabalho dentro do container
 WORKDIR /app
 
-# Copiar os arquivos de dependência primeiro para aproveitar o cache do Docker
+# ngrok: usado apenas no modo "--tunnel ngrok" (veja .env.example)
+RUN npm install -g @expo/ngrok@^4.1.0
+
+# Copiar dependencias primeiro para aproveitar o cache do Docker.
+# npm ci instala exatamente o que esta no package-lock.json.
 COPY mobile/package*.json ./
+RUN npm ci
 
-# Instalar as dependências usando a flag legada para evitar erros de peer dependencies
-RUN npm install --legacy-peer-deps
-
-# Copiar o restante dos arquivos do projeto mobile
+# Copiar o restante do projeto mobile (o node_modules local fica de fora via .dockerignore)
 COPY mobile/ .
 
-# Expor a porta padrão do Metro Bundler (8081) e do Expo (19000, 19001, 19002)
-EXPOSE 8081 19000 19001 19002
+# Metro Bundler
+EXPOSE 8081
 
-# Comando padrão para iniciar o Expo em modo host
-CMD ["npx", "expo", "start", "--host", "lan"]
+# O modo (lan/tunel) e definido pelo docker-compose.yml via EXPO_START_ARGS
+CMD ["npx", "expo", "start", "--lan"]

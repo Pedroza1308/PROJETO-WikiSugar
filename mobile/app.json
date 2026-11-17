@@ -23,7 +23,17 @@
     },
     "plugins": [
       "expo-font",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-status-bar",
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O WikiSugar acessa suas fotos para você escolher a foto de perfil e registrar check-ins.",
+          "cameraPermission": "O WikiSugar usa a câmera para você registrar check-ins com foto.",
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }

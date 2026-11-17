@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleProp, StyleSheet, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
+import { Pressable, StyleProp, StyleSheet, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
 import { useFontScale } from '../store/AppContext';
 import { colors, fonts, radius } from '../theme/tokens';
 import { Icon, IconName } from './Icon';
@@ -9,6 +9,11 @@ export interface FieldProps extends TextInputProps {
   label?: string;
   icon?: IconName;
   rightIcon?: IconName;
+  /** Makes the right icon a button (e.g. show/hide password). */
+  onRightIconPress?: () => void;
+  rightIconLabel?: string;
+  /** Validation message shown under the field. */
+  error?: string | null;
   suffix?: string;
   containerStyle?: StyleProp<ViewStyle>;
   multiline?: boolean;
@@ -21,6 +26,9 @@ export function Field({
   label,
   icon,
   rightIcon,
+  onRightIconPress,
+  rightIconLabel,
+  error,
   suffix,
   containerStyle,
   multiline,
@@ -72,9 +80,26 @@ export function Field({
               {suffix}
             </Txt>
           ) : null}
-          {rightIcon ? <Icon name={rightIcon} size={20} color={colors.muted} /> : null}
+          {rightIcon && onRightIconPress ? (
+            <Pressable
+              onPress={onRightIconPress}
+              accessibilityRole="button"
+              accessibilityLabel={rightIconLabel}
+              hitSlop={8}
+              style={styles.iconButton}
+            >
+              <Icon name={rightIcon} size={20} color={colors.muted} />
+            </Pressable>
+          ) : rightIcon ? (
+            <Icon name={rightIcon} size={20} color={colors.muted} />
+          ) : null}
         </View>
       </View>
+      {error ? (
+        <Txt size={13} weight={700} color={colors.danger} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+          {error}
+        </Txt>
+      ) : null}
     </View>
   );
 }
@@ -103,4 +128,5 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   inputMultiline: { minHeight: 86 },
+  iconButton: { minWidth: 32, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
 });

@@ -1,23 +1,77 @@
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Avatar, Eyebrow, H1, H2, Icon, IconTile, Paragraph, ProgressCard, Screen, Txt } from '../components';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Avatar, Button, ErrorState, Eyebrow, H1, H2, Icon, IconTile, Paragraph, ProgressCard, Screen, Txt } from '../components';
 import { useScreenPadding } from '../hooks/ui';
+import { messageFromError } from '../lib/errors';
 import type { HomeScreenProps } from '../navigation/types';
+import * as groupService from '../services/groupService';
 import { useApp } from '../store/AppContext';
 import { colors, radius, shadows, TOUCH } from '../theme/tokens';
+import type { GroupSummary } from '../types';
 import { formatHours, formatLongDateUpper, formatNumber, formatShortDate } from '../utils/format';
 
 export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const px = useScreenPadding();
-  const { user, goals, progress, nextMeal, addWater } = useApp();
-  if (!user || !goals || !progress) return <Screen>{null}</Screen>;
+  const { user, goals, progress, nextMeal, streakDays, profileError, addWater, reloadProfile, refreshToday, signOut } = useApp();
+  const [groups, setGroups] = useState<GroupSummary[] | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadGroups = useCallback(async () => {
+    try {
+      setGroups(await groupService.listMyGroups());
+    } catch {
+      setGroups((g) => g ?? []);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadGroups();
+    }, [loadGroups]),
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([refreshToday(), loadGroups()]);
+    setRefreshing(false);
+  };
+
+  if (!user || !goals || !progress) {
+    return (
+      <Screen>
+        {profileError ? (
+          <View style={[styles.center, { paddingHorizontal: px }]}>
+            <ErrorState
+              title="Não foi possível carregar seus dados"
+              message={profileError}
+              action={{ label: 'Tentar de novo', onPress: () => void reloadProfile() }}
+            />
+            <Button label="Sair da conta" variant="ghost" onPress={() => void signOut()} />
+          </View>
+        ) : (
+          <View style={styles.center}>
+            <ActivityIndicator color={colors.primary} accessibilityLabel="Carregando seus dados" />
+          </View>
+        )}
+      </Screen>
+    );
+  }
 
   const today = new Date();
   const waterFull = progress.waterMl >= goals.waterMl;
+  const totalPoints = (groups ?? []).reduce((sum, g) => sum + g.myPoints, 0);
+
+  const onAddWater = () => {
+    addWater(250).catch((e: unknown) => Alert.alert('Água não registrada', messageFromError(e)));
+  };
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: px }]}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingHorizontal: px }]}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
         <View style={styles.header}>
           <View style={styles.flex}>
             <Eyebrow size={12}>{formatLongDateUpper(today)}</Eyebrow>
@@ -32,18 +86,30 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
             accessibilityLabel="Abrir perfil"
             style={styles.avatarBtn}
           >
-            <Avatar initials={user.initials} size={52} />
+            <Avatar initials={user.initials} uri={user.avatarUrl} size={52} />
           </Pressable>
         </View>
 
-        <View style={styles.streak} accessible accessibilityLabel={`${user.streakDays} dias de cuidado seguido`}>
+        <View
+          style={styles.streak}
+          accessible
+          accessibilityLabel={
+            streakDays > 0 ? `${streakDays} ${streakDays === 1 ? 'dia' : 'dias'} de cuidado seguido` : 'Comece sua sequência registrando algo hoje'
+          }
+        >
           <Icon name="flame" size={22} color={colors.streakIcon} />
-          <Txt size={15} weight={800} color={colors.streakText}>
-            {user.streakDays} dias{' '}
-            <Txt size={14} weight={600} color={colors.streakMuted}>
-              de cuidado seguido
+          {streakDays > 0 ? (
+            <Txt size={15} weight={800} color={colors.streakText}>
+              {streakDays} {streakDays === 1 ? 'dia' : 'dias'}{' '}
+              <Txt size={14} weight={600} color={colors.streakMuted}>
+                de cuidado seguido
+              </Txt>
             </Txt>
-          </Txt>
+          ) : (
+            <Txt size={14} weight={700} color={colors.streakText}>
+              Registre algo hoje para começar sua sequência
+            </Txt>
+          )}
         </View>
 
         <View style={styles.sectionHead}>
@@ -68,7 +134,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
             action={{
               label: waterFull ? 'Meta ✓' : '+ 250 mL',
               accessibilityLabel: waterFull ? 'Meta de água atingida' : 'Adicionar 250 mililitros de água',
-              onPress: () => addWater(250),
+              onPress: onAddWater,
             }}
           />
           <ProgressCard
@@ -79,11 +145,46 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           />
         </View>
 
+        <View style={styles.groupCard}>
+          <View style={styles.groupHead}>
+            <IconTile name="trophy" size={45} />
+            <View style={styles.flex}>
+              <Txt size={16} weight={800}>
+                Seus grupos
+              </Txt>
+              <Txt size={13} color={colors.muted}>
+                {groups === null
+                  ? 'Carregando…'
+                  : groups.length === 0
+                    ? 'Entre em um grupo para pontuar com amigos'
+                    : `${groups.length} ${groups.length === 1 ? 'grupo' : 'grupos'} · ${formatNumber(totalPoints)} pontos no total`}
+              </Txt>
+            </View>
+          </View>
+          <View style={styles.groupActions}>
+            <Button
+              label="Fazer check-in"
+              icon="camera"
+              onPress={() => navigation.navigate('NewCheckin')}
+              style={styles.flex}
+              minHeight={48}
+              testID="home-checkin"
+            />
+            <Button
+              label="Grupos"
+              variant="secondary"
+              onPress={() => navigation.navigate('GroupsTab', { screen: 'Groups' })}
+              style={styles.flex}
+              minHeight={48}
+            />
+          </View>
+        </View>
+
         {nextMeal ? (
           <Pressable
             onPress={() => navigation.navigate('DietTab')}
             accessibilityRole="button"
-            accessibilityLabel={`Próxima refeição: ${nextMeal.title} às ${nextMeal.time}. Abrir Sua Dieta`}
+            accessibilityLabel={`Próxima refeição: ${nextMeal.title}, ${nextMeal.time}. Abrir Sua Dieta`}
             style={({ pressed }) => [styles.nextMeal, pressed && { backgroundColor: colors.primaryPressed }]}
           >
             <IconTile name="clock" size={45} color={colors.white} bg="rgba(255,255,255,0.18)" />
@@ -123,6 +224,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
   content: { paddingTop: 24, paddingBottom: 32, gap: 16 },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   hello: { marginTop: 4, marginBottom: 2 },
@@ -140,6 +242,17 @@ const styles = StyleSheet.create({
   },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   cards: { gap: 12 },
+  groupCard: {
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: radius.card,
+    padding: 14,
+    ...shadows.card,
+  },
+  groupHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  groupActions: { flexDirection: 'row', gap: 10 },
   nextMeal: {
     flexDirection: 'row',
     alignItems: 'center',

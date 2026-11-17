@@ -1,40 +1,46 @@
-import { mockFoods } from '../mocks/foods';
-import { mockRecentSearches } from '../mocks/journal';
+import { supabase } from '../lib/supabase';
 import type { Food } from '../types';
-import { normalize } from '../utils/format';
-import { clone, delay, fail } from './mockClient';
 
-/**
- * Food service (mocked).
- * Future: GET /foods?q=... on the Express backend, which proxies the FatSecret API.
- */
-
-/** Searches foods by name (accent and case insensitive). The query "erro" simulates a failure. */
-export async function searchFoods(query: string): Promise<Food[]> {
-  const q = normalize(query);
-  if (q === 'erro') return fail('Falha simulada na busca');
-  const results = mockFoods.filter((f) => normalize(f.name).includes(q));
-  return delay(clone(results));
+/** Row of public.foods (Tabela TACO, per 100 g). Postgres numeric may arrive as string. */
+interface FoodRow {
+  id: number;
+  name: string;
+  category: string;
+  kcal: number | string | null;
+  protein_g: number | string | null;
+  fat_g: number | string | null;
+  saturated_fat_g: number | string | null;
+  carbs_g: number | string | null;
+  fiber_g: number | string | null;
+  sodium_mg: number | string | null;
 }
 
-export async function getFoodById(id: string): Promise<Food> {
-  const food = mockFoods.find((f) => f.id === id);
-  if (!food) return fail('Alimento não encontrado');
-  return delay(clone(food));
-}
+const num = (v: number | string | null): number | null => (v === null || v === '' ? null : Number(v));
 
-export async function getRecentSearches(): Promise<string[]> {
-  return delay([...mockRecentSearches], 0);
-}
-
-/** Scales the nutrition of a food (defined per `baseGrams`) to the given grams. */
-export function scaleFood(food: Food, grams: number) {
-  const f = grams / food.baseGrams;
+function toFood(r: FoodRow): Food {
   return {
-    kcal: Math.round(food.kcal * f),
-    carbs: food.carbs * f,
-    protein: food.protein * f,
-    fat: food.fat * f,
-    sugar: food.sugar * f,
+    id: r.id,
+    name: r.name,
+    category: r.category,
+    kcal: num(r.kcal),
+    proteinG: num(r.protein_g),
+    fatG: num(r.fat_g),
+    saturatedFatG: num(r.saturated_fat_g),
+    carbsG: num(r.carbs_g),
+    fiberG: num(r.fiber_g),
+    sodiumMg: num(r.sodium_mg),
   };
+}
+
+/** Accent/case-insensitive search; every word must appear in the name. */
+export async function searchFoods(query: string): Promise<Food[]> {
+  const { data, error } = await supabase.rpc('search_foods', { p_query: query.trim(), p_limit: 30 });
+  if (error) throw error;
+  return ((data ?? []) as FoodRow[]).map(toFood);
+}
+
+export async function getFoodById(id: number): Promise<Food> {
+  const { data, error } = await supabase.from('foods').select('*').eq('id', id).single();
+  if (error) throw error;
+  return toFood(data as FoodRow);
 }

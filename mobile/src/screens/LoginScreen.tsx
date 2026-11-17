@@ -1,25 +1,32 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Field, H1, Logo, Paragraph, Screen, TopBar, Txt } from '../components';
+import { Banner, Button, Field, H1, Logo, Paragraph, Screen, TopBar, Txt } from '../components';
 import { useScreenPadding } from '../hooks/ui';
-import { resetToApp } from '../navigation/actions';
+import { messageFromError } from '../lib/errors';
 import type { AuthScreenProps } from '../navigation/types';
 import { useApp } from '../store/AppContext';
 import { colors, TOUCH } from '../theme/tokens';
+import { isValidEmail } from '../utils/validation';
 
-export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
+export function LoginScreen({ navigation, route }: AuthScreenProps<'Login'>) {
   const px = useScreenPadding();
-  const { login } = useApp();
-  const [email, setEmail] = useState('');
+  const { signIn } = useApp();
+  const [email, setEmail] = useState(route.params?.email ?? '');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
+    if (!isValidEmail(email)) return setError('Informe um e-mail válido.');
+    if (!password) return setError('Informe sua senha.');
+    setError(null);
     setLoading(true);
     try {
-      await login(email, password); // mocked: accepts anything
-      resetToApp(navigation);
-    } finally {
+      // On success the session changes and the navigator switches to the app.
+      await signIn(email, password);
+    } catch (e) {
+      setError(messageFromError(e, 'Não foi possível entrar. Tente novamente.'));
       setLoading(false);
     }
   };
@@ -35,6 +42,9 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
           </H1>
           <Paragraph>Entre para acompanhar o seu dia.</Paragraph>
         </View>
+
+        {route.params?.notice ? <Banner tone="info" message={route.params.notice} /> : null}
+        {error ? <Banner message={error} /> : null}
 
         <View style={styles.form}>
           <Field
@@ -54,16 +64,15 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
             placeholder="Sua senha"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
             autoComplete="password"
             textContentType="password"
             onSubmitEditing={submit}
+            rightIcon={showPassword ? 'eyeOff' : 'eye'}
+            onRightIconPress={() => setShowPassword((v) => !v)}
+            rightIconLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
           />
-          <Pressable accessibilityRole="link" style={styles.forgot} hitSlop={4}>
-            <Txt size={14} weight={800} color={colors.primary}>
-              Esqueci minha senha
-            </Txt>
-          </Pressable>
         </View>
 
         <Button label="Entrar" onPress={submit} loading={loading} testID="login-submit" />
@@ -72,11 +81,7 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
           <Txt size={15} color={colors.muted}>
             Ainda não tem conta?
           </Txt>
-          <Pressable
-            accessibilityRole="link"
-            onPress={() => navigation.navigate('Onboarding1')}
-            style={styles.link}
-          >
+          <Pressable accessibilityRole="link" onPress={() => navigation.navigate('Onboarding1')} style={styles.link}>
             <Txt size={15} weight={800} color={colors.primary}>
               Criar conta
             </Txt>
@@ -92,7 +97,6 @@ const styles = StyleSheet.create({
   intro: { gap: 10 },
   title: { marginTop: 10 },
   form: { gap: 16 },
-  forgot: { alignSelf: 'flex-end', minHeight: TOUCH, justifyContent: 'center' },
   footer: { marginTop: 'auto', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   link: { minHeight: TOUCH, justifyContent: 'center', paddingHorizontal: 4 },
 });

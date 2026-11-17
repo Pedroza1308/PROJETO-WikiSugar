@@ -1,0 +1,2 @@
+# Configuracao local do Docker (IP da maquina, tokens) - use o .env.example como modelo
+.env

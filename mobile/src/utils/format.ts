@@ -35,6 +35,23 @@ export function formatShortDate(date: Date = new Date()): string {
   return `${date.getDate()} ${MONTHS[date.getMonth()].slice(0, 3)}.`;
 }
 
+/** "16 nov. · 14:32" — adds the year when it is not the current one. */
+export function formatDateTime(value: string | Date): string {
+  const date = typeof value === 'string' ? new Date(value) : value;
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  const year = date.getFullYear() !== new Date().getFullYear() ? ` ${date.getFullYear()}` : '';
+  return `${date.getDate()} ${MONTHS[date.getMonth()].slice(0, 3)}.${year} · ${hh}:${mm}`;
+}
+
+/** Spoken version for screen readers: "16 de novembro às 14:32". */
+export function formatDateTimeLong(value: string | Date): string {
+  const date = typeof value === 'string' ? new Date(value) : value;
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  return `${date.getDate()} de ${MONTHS[date.getMonth()]} de ${date.getFullYear()} às ${hh}:${mm}`;
+}
+
 /** yyyy-mm-dd in local time */
 export function toIsoDate(date: Date = new Date()): string {
   const m = String(date.getMonth() + 1).padStart(2, '0');

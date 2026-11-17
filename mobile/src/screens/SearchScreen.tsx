@@ -15,13 +15,16 @@ import {
   StatusBadge,
   Txt,
 } from '../components';
+import { mealSlotConfig } from '../config/rules';
 import { useScreenPadding } from '../hooks/ui';
 import type { SearchScreenProps } from '../navigation/types';
 import * as foodService from '../services/foodService';
+import { addRecentSearch, getRecentSearches } from '../services/recentSearches';
 import { useApp } from '../store/AppContext';
 import { colors, radius, shadows } from '../theme/tokens';
 import type { Food } from '../types';
 import { formatDecimal, formatNumber } from '../utils/format';
+import { foodLevel } from '../utils/nutrition';
 
 type Status = 'idle' | 'loading' | 'done' | 'error';
 
@@ -35,12 +38,13 @@ export function SearchScreen({ navigation, route }: SearchScreenProps<'Search'>)
   const [status, setStatus] = useState<Status>('idle');
   const [recent, setRecent] = useState<string[]>([]);
   const requestId = useRef(0);
+  const slot = route.params?.slot;
 
   const hasDiabetes = !!user && user.diabetesType !== 'Não tenho';
 
   useEffect(() => {
-    void foodService.getRecentSearches().then(setRecent);
-  }, []);
+    if (user) setRecent(getRecentSearches(user.id));
+  }, [user]);
 
   // Allow other screens to open Search with a pre-filled query.
   useEffect(() => {
@@ -62,7 +66,7 @@ export function SearchScreen({ navigation, route }: SearchScreenProps<'Search'>)
 
   useEffect(() => {
     const q = query.trim();
-    if (q.length === 0) {
+    if (q.length < 2) {
       requestId.current++;
       setResults([]);
       setStatus('idle');
@@ -73,31 +77,33 @@ export function SearchScreen({ navigation, route }: SearchScreenProps<'Search'>)
   }, [query, runSearch]);
 
   const openFood = (food: Food) => {
-    setRecent((prev) => [food.name, ...prev.filter((r) => r !== food.name)].slice(0, 5));
-    navigation.navigate('FoodDetail', { foodId: food.id });
+    const term = query.trim();
+    if (user && term) setRecent(addRecentSearch(user.id, term));
+    navigation.navigate('FoodDetail', { foodId: food.id, slot });
   };
 
   return (
     <Screen keyboard>
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingHorizontal: px }]}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: px }]} keyboardShouldPersistTaps="handled">
         <View style={styles.intro}>
           <Eyebrow>Busca inteligente</Eyebrow>
           <H1 size={26}>O que você vai comer?</H1>
-          <Paragraph>Veja calorias, carboidratos e alertas para o seu perfil.</Paragraph>
+          <Paragraph>
+            {slot
+              ? `Escolha um alimento para adicionar em ${mealSlotConfig(slot).title}.`
+              : 'Veja a tabela nutricional completa e alertas para o seu perfil.'}
+          </Paragraph>
         </View>
 
         <Field
           icon="search"
-          placeholder="Buscar alimento (ex.: arroz)"
+          placeholder="Buscar alimento (ex.: arroz integral)"
           value={query}
           onChangeText={setQuery}
           returnKeyType="search"
           autoCorrect={false}
           accessibilityLabel="Buscar alimento"
-          onSubmitEditing={() => query.trim() && void runSearch(query.trim())}
+          onSubmitEditing={() => query.trim().length >= 2 && void runSearch(query.trim())}
         />
 
         {status === 'idle' ? (
@@ -122,10 +128,14 @@ export function SearchScreen({ navigation, route }: SearchScreenProps<'Search'>)
                 <Txt size={13} color={colors.alertText} lh={1.4}>
                   {hasDiabetes
                     ? `Avisamos quando um alimento for alto em carboidrato para quem tem diabetes ${user?.diabetesType}.`
-                    : 'Avisamos quando um alimento não combina com as suas restrições.'}
+                    : 'Avisamos quando um alimento for alto em carboidrato.'}
                 </Txt>
               </View>
             </View>
+
+            <Txt size={12} color={colors.muted}>
+              Dados nutricionais: Tabela Brasileira de Composição de Alimentos (TACO), NEPA/UNICAMP.
+            </Txt>
           </>
         ) : null}
 
@@ -150,7 +160,7 @@ export function SearchScreen({ navigation, route }: SearchScreenProps<'Search'>)
           <EmptyState
             icon="search"
             title="Nenhum alimento encontrado"
-            message={`Não achamos resultados para “${query.trim()}”. Tente outro nome.`}
+            message={`Não achamos resultados para “${query.trim()}”. Tente um nome mais simples, como “arroz” ou “banana”.`}
           />
         ) : null}
 
@@ -160,7 +170,7 @@ export function SearchScreen({ navigation, route }: SearchScreenProps<'Search'>)
               {results.length} {results.length === 1 ? 'resultado' : 'resultados'}
             </Txt>
             {results.map((food) => (
-              <FoodRow key={food.id} food={food} warn={hasDiabetes && food.level === 'high'} onPress={() => openFood(food)} />
+              <FoodRow key={food.id} food={food} warn={hasDiabetes && foodLevel(food).level === 'high'} onPress={() => openFood(food)} />
             ))}
           </View>
         ) : null}
@@ -170,26 +180,29 @@ export function SearchScreen({ navigation, route }: SearchScreenProps<'Search'>)
 }
 
 function FoodRow({ food, warn, onPress }: { food: Food; warn: boolean; onPress: () => void }) {
+  const { level, label } = foodLevel(food);
+  const kcal = food.kcal === null ? 'sem dado de' : formatNumber(food.kcal);
+  const carbs = food.carbsG === null ? '—' : formatDecimal(food.carbsG);
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${food.name}. ${formatNumber(food.kcal)} quilocalorias e ${formatDecimal(food.carbs)} gramas de carboidrato por ${food.baseGrams} gramas. ${food.status}`}
-      accessibilityHint="Abre os detalhes do alimento"
+      accessibilityLabel={`${food.name}. ${kcal} quilocalorias e ${carbs} gramas de carboidrato por 100 gramas. ${label}`}
+      accessibilityHint="Abre a tabela nutricional"
       style={({ pressed }) => [styles.row, warn && styles.rowWarn, pressed && { backgroundColor: colors.primaryPale }]}
     >
       <IconTile name="utensils" size={46} color={colors.foodThumbIcon} bg={colors.foodThumbBg} />
       <View style={styles.rowBody}>
-        <Txt size={11} weight={800} color={colors.muted} ls={0.6}>
+        <Txt size={11} weight={800} color={colors.muted} ls={0.6} upper numberOfLines={1}>
           {food.category}
         </Txt>
         <Txt size={16} weight={800} numberOfLines={2}>
           {food.name}
         </Txt>
         <Txt size={13} color={colors.muted}>
-          {formatNumber(food.kcal)} kcal · {formatDecimal(food.carbs)} g carb. · {food.baseGrams} g
+          {food.kcal === null ? '—' : formatNumber(food.kcal)} kcal · {carbs} g carb. · 100 g
         </Txt>
-        <StatusBadge level={food.level} label={food.status} />
+        <StatusBadge level={level} label={label} />
       </View>
       <Icon name="chevron" size={20} color={colors.muted} />
     </Pressable>

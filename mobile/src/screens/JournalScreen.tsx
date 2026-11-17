@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Card, Chip, Eyebrow, Field, H1, H2, IconTile, Paragraph, Pill, Screen, Toast, ToggleGroup, Txt } from '../components';
+import { Banner, Button, Card, Chip, Eyebrow, Field, H1, H2, IconTile, Paragraph, Pill, Screen, Toast, ToggleGroup, Txt } from '../components';
 import type { IconName } from '../components';
 import { useScreenPadding } from '../hooks/ui';
+import { messageFromError } from '../lib/errors';
 import type { TabScreenProps } from '../navigation/types';
-import * as journalService from '../services/journalService';
 import { useApp } from '../store/AppContext';
 import { colors } from '../theme/tokens';
 import type { JournalDraft } from '../types';
@@ -26,15 +26,19 @@ function validate(d: JournalDraft): Errors {
 
 export function JournalScreen(_props: TabScreenProps<'JournalTab'>) {
   const px = useScreenPadding();
-  const { saveJournal } = useApp();
+  const { journal, saveJournal } = useApp();
   const [draft, setDraft] = useState<JournalDraft | null>(null);
+  const [dirty, setDirty] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Today's entry comes from the database (via the app state). Keep local edits
+  // until they are saved; otherwise follow updates such as "+250 mL" on Home.
   useEffect(() => {
-    void journalService.getTodayEntry().then(setDraft);
-  }, []);
+    if (journal && !dirty) setDraft(journal);
+  }, [journal, dirty]);
 
   if (!draft) {
     return (
@@ -48,7 +52,9 @@ export function JournalScreen(_props: TabScreenProps<'JournalTab'>) {
 
   const set = <K extends keyof JournalDraft>(key: K, value: JournalDraft[K]) => {
     setDraft((d) => (d ? { ...d, [key]: value } : d));
+    setDirty(true);
     setSaved(false);
+    setSaveError(null);
     if (key in errors) setErrors((e) => ({ ...e, [key]: undefined }));
   };
 
@@ -57,9 +63,13 @@ export function JournalScreen(_props: TabScreenProps<'JournalTab'>) {
     setErrors(e);
     if (Object.values(e).some(Boolean)) return;
     setSaving(true);
+    setSaveError(null);
     try {
       await saveJournal(draft);
+      setDirty(false);
       setSaved(true);
+    } catch (err) {
+      setSaveError(messageFromError(err, 'Não foi possível salvar o diário.'));
     } finally {
       setSaving(false);
     }
@@ -166,6 +176,7 @@ export function JournalScreen(_props: TabScreenProps<'JournalTab'>) {
           />
         </Section>
 
+        {saveError ? <Banner message={saveError} /> : null}
         <Button label={saved ? 'Salvo ✓' : 'Salvar registro'} onPress={save} loading={saving} testID="journal-save" />
       </ScrollView>
     </Screen>

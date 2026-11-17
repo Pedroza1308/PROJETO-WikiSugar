@@ -1,14 +1,15 @@
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps, NavigatorScreenParams } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { DiabetesType } from '../types';
+import type { MealSlot } from '../types';
 
+/** Sign-up data lives in SignupDraft (memory), not in params. */
 export type AuthStackParamList = {
   Welcome: undefined;
-  Login: undefined;
+  Login: { email?: string; notice?: string } | undefined;
   Onboarding1: undefined;
-  Onboarding2: { name: string; email: string };
-  Onboarding3: { name: string; email: string; diabetesType: DiabetesType; restrictions: string[] };
+  Onboarding2: undefined;
+  Onboarding3: undefined;
 };
 
 export type HomeStackParamList = {
@@ -17,13 +18,21 @@ export type HomeStackParamList = {
 };
 
 export type SearchStackParamList = {
-  Search: { query?: string } | undefined;
-  FoodDetail: { foodId: string };
+  Search: { query?: string; slot?: MealSlot } | undefined;
+  FoodDetail: { foodId: number; slot?: MealSlot };
+};
+
+export type GroupsStackParamList = {
+  Groups: undefined;
+  CreateGroup: undefined;
+  JoinGroup: undefined;
+  GroupDetail: { groupId: string; name?: string };
 };
 
 export type AppTabParamList = {
   HomeTab: NavigatorScreenParams<HomeStackParamList>;
   SearchTab: NavigatorScreenParams<SearchStackParamList>;
+  GroupsTab: NavigatorScreenParams<GroupsStackParamList>;
   DietTab: undefined;
   JournalTab: undefined;
 };
@@ -31,6 +40,8 @@ export type AppTabParamList = {
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   App: NavigatorScreenParams<AppTabParamList>;
+  /** Photo check-in (modal). `groupId` pre-selects a destination group. */
+  NewCheckin: { groupId?: string } | undefined;
 };
 
 export type RootScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<RootStackParamList, T>;
@@ -52,6 +63,11 @@ export type HomeScreenProps<T extends keyof HomeStackParamList> = CompositeScree
 
 export type SearchScreenProps<T extends keyof SearchStackParamList> = CompositeScreenProps<
   NativeStackScreenProps<SearchStackParamList, T>,
+  TabScreenProps<keyof AppTabParamList>
+>;
+
+export type GroupsScreenProps<T extends keyof GroupsStackParamList> = CompositeScreenProps<
+  NativeStackScreenProps<GroupsStackParamList, T>,
   TabScreenProps<keyof AppTabParamList>
 >;
 

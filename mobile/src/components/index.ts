@@ -1,5 +1,6 @@
 export { AppleLogo } from './AppleLogo';
 export { Avatar } from './Avatar';
+export { Banner } from './Banner';
 export { Button } from './Button';
 export type { ButtonVariant } from './Button';
 export { Chip, MultiSelect, SegmentedControl } from './Chip';
@@ -10,6 +11,8 @@ export type { IconName } from './Icon';
 export { IconTile } from './IconTile';
 export { Logo } from './Logo';
 export { OnboardingProgress } from './OnboardingProgress';
+export { PasswordRules } from './PasswordRules';
+export { choosePhoto } from './PhotoPicker';
 export { PressableScale } from './PressableScale';
 export { ProgressBar } from './ProgressBar';
 export { ProgressCard } from './ProgressCard';

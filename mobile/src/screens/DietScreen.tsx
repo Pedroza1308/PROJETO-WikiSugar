@@ -2,34 +2,46 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Chip, Eyebrow, H1, Icon, IconTile, Pill, ProgressBar, Screen, Toast, Txt } from '../components';
 import { useScreenPadding } from '../hooks/ui';
+import { messageFromError } from '../lib/errors';
 import type { TabScreenProps } from '../navigation/types';
 import { useApp } from '../store/AppContext';
-import { colors, radius, shadows } from '../theme/tokens';
-import type { Meal } from '../types';
+import { colors, radius, shadows, TOUCH } from '../theme/tokens';
+import type { Meal, MealSlot } from '../types';
 import { formatDayMonth, formatNumber } from '../utils/format';
 
 const TOAST_MS = 4000;
 
 export function DietScreen({ navigation }: TabScreenProps<'DietTab'>) {
   const px = useScreenPadding();
-  const { meals, goals, addedNotice, dismissAddedNotice } = useApp();
-  const [openId, setOpenId] = useState<string | null>(meals.find((m) => m.foods.length > 0)?.id ?? null);
+  const { meals, goals, addedNotice, dismissAddedNotice, removeMealItem } = useApp();
+  const [openId, setOpenId] = useState<MealSlot | null>(meals.find((m) => m.items.length > 0)?.id ?? null);
+  const [editingId, setEditingId] = useState<MealSlot | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   // Expand the meal that received the food and auto-dismiss the confirmation.
   useEffect(() => {
     if (!addedNotice) return;
-    const target = meals.find((m) => m.title === addedNotice.mealTitle);
-    if (target) setOpenId(target.id);
+    setOpenId(addedNotice.mealId);
     const t = setTimeout(dismissAddedNotice, TOAST_MS);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addedNotice, dismissAddedNotice]);
 
   const planned = meals.reduce((sum, m) => sum + m.kcal, 0);
   const goal = goals?.caloriesKcal ?? 0;
   const pct = goal > 0 ? planned / goal : 0;
 
-  const goSearch = () => navigation.navigate('SearchTab', { screen: 'Search', params: undefined });
+  const goSearch = (slot: MealSlot) => navigation.navigate('SearchTab', { screen: 'Search', params: { slot } });
+
+  const remove = async (itemId: string) => {
+    setRemovingId(itemId);
+    try {
+      await removeMealItem(itemId);
+    } catch (e) {
+      Alert.alert('Não foi possível remover', messageFromError(e));
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
   return (
     <Screen>
@@ -82,9 +94,12 @@ export function DietScreen({ navigation }: TabScreenProps<'DietTab'>) {
               key={meal.id}
               meal={meal}
               open={openId === meal.id}
+              editing={editingId === meal.id}
+              removingId={removingId}
               onToggle={() => setOpenId((id) => (id === meal.id ? null : meal.id))}
-              onAdd={goSearch}
-              onEdit={() => Alert.alert('Editar refeição', `A edição de “${meal.title}” estará disponível em breve.`)}
+              onAdd={() => goSearch(meal.id)}
+              onEdit={() => setEditingId((id) => (id === meal.id ? null : meal.id))}
+              onRemove={(itemId) => void remove(itemId)}
             />
           ))}
         </View>
@@ -96,13 +111,16 @@ export function DietScreen({ navigation }: TabScreenProps<'DietTab'>) {
 interface MealCardProps {
   meal: Meal;
   open: boolean;
+  editing: boolean;
+  removingId: string | null;
   onToggle: () => void;
   onAdd: () => void;
   onEdit: () => void;
+  onRemove: (itemId: string) => void;
 }
 
-function MealCard({ meal, open, onToggle, onAdd, onEdit }: MealCardProps) {
-  const empty = meal.foods.length === 0;
+function MealCard({ meal, open, editing, removingId, onToggle, onAdd, onEdit, onRemove }: MealCardProps) {
+  const empty = meal.items.length === 0;
   return (
     <View style={[styles.meal, open && styles.mealOpen]}>
       <Pressable
@@ -112,7 +130,12 @@ function MealCard({ meal, open, onToggle, onAdd, onEdit }: MealCardProps) {
         accessibilityState={{ expanded: open }}
         style={styles.mealHead}
       >
-        <IconTile name={empty ? 'clock' : 'utensils'} size={44} color={empty ? colors.muted : colors.primary} bg={empty ? colors.goalInputBg : colors.primarySoft} />
+        <IconTile
+          name={empty ? 'clock' : 'utensils'}
+          size={44}
+          color={empty ? colors.muted : colors.primary}
+          bg={empty ? colors.goalInputBg : colors.primarySoft}
+        />
         <View style={styles.flex}>
           <Txt size={16} weight={800}>
             {meal.title}
@@ -133,25 +156,31 @@ function MealCard({ meal, open, onToggle, onAdd, onEdit }: MealCardProps) {
               Nenhum alimento ainda. Que tal adicionar algo?
             </Txt>
           ) : (
-            meal.foods.map((f, i) => {
-              const [name, amount] = f.split(' · ');
-              return (
-                <View key={`${f}-${i}`} style={styles.food}>
-                  <View style={styles.dot} />
-                  <Txt size={15} weight={700} style={styles.flex}>
-                    {name}
-                  </Txt>
-                  {amount ? (
-                    <Txt size={13} weight={700} color={colors.muted}>
-                      {amount}
-                    </Txt>
-                  ) : null}
-                </View>
-              );
-            })
+            meal.items.map((item) => (
+              <View key={item.id} style={styles.food}>
+                <View style={styles.dot} />
+                <Txt size={15} weight={700} style={styles.flex} numberOfLines={2}>
+                  {item.name}
+                </Txt>
+                <Txt size={13} weight={700} color={colors.muted}>
+                  {formatNumber(item.grams)} g · {formatNumber(item.kcal)} kcal
+                </Txt>
+                {editing ? (
+                  <Pressable
+                    onPress={() => onRemove(item.id)}
+                    disabled={removingId === item.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remover ${item.name}`}
+                    style={({ pressed }) => [styles.remove, pressed && { backgroundColor: colors.dangerBg }]}
+                  >
+                    <Icon name="trash" size={18} color={colors.danger} />
+                  </Pressable>
+                ) : null}
+              </View>
+            ))
           )}
           <View style={styles.actions}>
-            {!empty ? <Chip label="Editar" onPress={onEdit} style={styles.flex} /> : null}
+            {!empty ? <Chip label={editing ? 'Concluir' : 'Editar'} selected={editing} onPress={onEdit} style={styles.flex} /> : null}
             <Chip label="Adicionar" icon="plus" onPress={onAdd} style={styles.flex} />
           </View>
         </View>
@@ -189,5 +218,6 @@ const styles = StyleSheet.create({
   mealBody: { paddingHorizontal: 14, paddingBottom: 14, gap: 10, borderTopWidth: 1, borderTopColor: colors.lineSoft, paddingTop: 12 },
   food: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 28 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.primary },
+  remove: { width: TOUCH - 4, height: TOUCH - 4, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
 });

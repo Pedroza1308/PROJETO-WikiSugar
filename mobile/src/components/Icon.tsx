@@ -5,7 +5,8 @@ import { colors, iconDefaults } from '../theme/tokens';
 export type IconName =
   | 'arrow' | 'search' | 'home' | 'diet' | 'journal' | 'user' | 'flame' | 'droplet'
   | 'moon' | 'target' | 'clock' | 'plus' | 'check' | 'alert' | 'chevron' | 'utensils'
-  | 'mail' | 'lock' | 'activity' | 'pill' | 'settings' | 'close' | 'minus';
+  | 'mail' | 'lock' | 'activity' | 'pill' | 'settings' | 'close' | 'minus'
+  | 'users' | 'camera' | 'image' | 'trophy' | 'share' | 'eye' | 'eyeOff' | 'trash';
 
 const paths: Record<IconName, React.ReactNode> = {
   arrow: (<><Path d="m15 18-6-6 6-6" /><Path d="M9 12h11" /></>),
@@ -32,6 +33,15 @@ const paths: Record<IconName, React.ReactNode> = {
   // Extra helpers (not in the Figma icon set): close "×" and minus for the stepper.
   close: <Path d="M6 6l12 12M18 6 6 18" />,
   minus: <Path d="M5 12h14" />,
+  // Groups, check-ins and forms.
+  users: (<><Circle cx="9" cy="8" r="4" /><Path d="M2 21a7 7 0 0 1 14 0" /><Path d="M16 4.1a4 4 0 0 1 0 7.8M22 21a7 7 0 0 0-4-6.3" /></>),
+  camera: (<><Path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z" /><Circle cx="12" cy="13" r="3.5" /></>),
+  image: (<><Rect x="3" y="3" width="18" height="18" rx="2" /><Circle cx="9" cy="9" r="2" /><Path d="m21 15-4-4-11 10" /></>),
+  trophy: (<><Path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" /><Path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8M9 18h6" /></>),
+  share: (<><Circle cx="18" cy="5" r="3" /><Circle cx="6" cy="12" r="3" /><Circle cx="18" cy="19" r="3" /><Path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></>),
+  eye: (<><Path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><Circle cx="12" cy="12" r="3" /></>),
+  eyeOff: (<><Path d="m3 3 18 18" /><Path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.9 8.4 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2" /></>),
+  trash: (<><Path d="M3 6h18M8 6V4h8v2" /><Path d="m19 6-1 14H6L5 6M10 11v5M14 11v5" /></>),
 };
 
 export interface IconProps {
